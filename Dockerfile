@@ -1,21 +1,21 @@
-FROM python:3.9-slim
+# Base image
+FROM nvidia/cuda:11.7.1-cudnn8-devel-ubuntu20.04
 
-# Install git and any necessary packages
-RUN apt-get update && apt-get install -y git && \
-    apt-get clean && rm -rf /var/lib/apt/lists/*
+# Install Conda
+RUN apt-get update && apt-get install -y wget bzip2 && \
+    wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh && \
+    bash Miniconda3-latest-Linux-x86_64.sh -b -p /opt/conda && \
+    rm Miniconda3-latest-Linux-x86_64.sh
 
-# Set the working directory
+# Set PATH for Conda
+ENV PATH=/opt/conda/bin:$PATH
+
+# Copy environment.yaml and install dependencies
+COPY environment.yaml /app/
 WORKDIR /app
+RUN conda env create -f environment.yaml
 
-# Copy the requirements file first for caching
-COPY requirements.txt .
-
-# Upgrade pip and install the required Python packages
-RUN pip install --upgrade pip && \
-    pip install -r requirements.txt
-
-# Copy the rest of your application code
-COPY . .
-
-# Command to run your application
-CMD ["python3", "tiny_optimizedSD/tiny_txt2img.py", "--prompt", "A prompt example"]
+# Activate environment and run text-to-image script
+SHELL ["conda", "run", "-n", "ldm", "/bin/bash", "-c"]
+CMD ["python3", "tiny_optimizedSD/tiny_txt2img.py", "--prompt", "Enter your prompt here"]
+CMD ["conda", "run", "-n", "ldm", "python", "app.py"]
